@@ -25,6 +25,10 @@ let initWebRouter = (app) => {
     router.get('/api/allcode', userController.getAllcode)
 
     router.get('/api/top-doctor-home', doctorController.getTopDoctor)
+    router.get('/api/get-all-doctors', doctorController.getAllDoctor)
+
+    router.post('/api/save-infor-doctor', doctorController.saveInforDoctor)
+
 
     router.get('/thuycot', (req, res) => {
         return res.send('Hello Nguyễn Thị Thủy Cọt')
