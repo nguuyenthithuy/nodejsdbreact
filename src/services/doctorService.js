@@ -1,6 +1,8 @@
-import { resolve } from 'path'
-import db from '../models/index'
 
+import db from '../models/index'
+import _ from 'lodash'
+require('dotenv').config();
+const MAX_NUMBER_SCHEDULE = process.env.MAX_NUMBER_SCHEDULE
 
 let gettopDoctorHome = (inputLimit) => {
     return new Promise(async (resolve, reject) => {
@@ -143,10 +145,74 @@ let getDetailDoctorById = (inpuId) => {
         }
     })
 }
+let bulkCreateSchedule = (data) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            if (!data.arrSchedule || !data.doctorId || !data.date) {
+                resolve({
+                    errCode: 1,
+                    errMessage: 'Missing param'
+                })
+            }
+            else {
+                let schedule = data.arrSchedule
+                if (schedule && schedule.length > 0) {
+                    schedule.map(item => {
+                        item.maxNumber = MAX_NUMBER_SCHEDULE
+                        return item
+                    })
+                }
+                // get existing data
+                let existing = await db.Schedule.findAll({
+                    where: { doctorId: data.doctorId, date: data.date },
+                    attributes: ['doctorId', 'date', 'timeType', 'maxNumber'],
+                    raw: true
+                })
+
+
+                // convert date
+                if (existing && existing.length > 0) {
+                    existing = existing.map(item => {
+                        item.date = new Date(item.date).getTime();
+                        return item
+                    })
+                }
+                // compare different so sánh xem 2 mảng có khác nhau không
+                let toCreate = _.differenceWith(schedule, existing, (a, b) => { // lodash so sánh 
+                    return a.timeType === b.timeType && a.date === b.date // sự khác nhau khác c++ nha (do hàm different)
+
+                    // có nghĩa là nó return về cái khác nhau chứ k phải cái giống nhau
+                });
+                // ok thì lưu xuống db
+
+                if (toCreate && toCreate.length > 0) {
+                    await db.Schedule.bulkCreate(toCreate) // thêm nhiều dữ liệu 1 lúc
+                }
+                console.log('check existing', existing)
+
+                console.log('check toCreat ', toCreate)
+
+                resolve({
+                    errCode: 0,
+                    errMessage: "OK"
+                })
+            }
+
+
+
+
+        }
+        catch (e) {
+            reject(e)
+        }
+    })
+}
 
 module.exports = {
     gettopDoctorHome: gettopDoctorHome,
     getAllDoctor: getAllDoctor,
     saveDetailInforDoctor: saveDetailInforDoctor,
-    getDetailDoctorById: getDetailDoctorById
+    getDetailDoctorById: getDetailDoctorById,
+    bulkCreateSchedule: bulkCreateSchedule
 }
