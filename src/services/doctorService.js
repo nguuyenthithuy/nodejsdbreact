@@ -171,16 +171,13 @@ let bulkCreateSchedule = (data) => {
                 })
 
 
-                // convert date
-                if (existing && existing.length > 0) {
-                    existing = existing.map(item => {
-                        item.date = new Date(item.date).getTime();
-                        return item
-                    })
-                }
+
+
                 // compare different so sánh xem 2 mảng có khác nhau không
                 let toCreate = _.differenceWith(schedule, existing, (a, b) => { // lodash so sánh 
-                    return a.timeType === b.timeType && a.date === b.date // sự khác nhau khác c++ nha (do hàm different)
+                    return a.timeType === b.timeType && +a.date === +b.date // sự khác nhau khác c++ nha (do hàm different)
+
+                    // +convert dạng số qua string
 
                     // có nghĩa là nó return về cái khác nhau chứ k phải cái giống nhau
                 });
@@ -219,7 +216,12 @@ let getScheduleDoctorByDate = (doctorId, date) => {
             }
             else {
                 let dataSchedule = await db.Schedule.findAll({
-                    where: { doctorId: doctorId, date: date }
+                    where: { doctorId: doctorId, date: date },
+                    include: [
+                        { model: db.Allcode, as: 'timeTypeData', attributes: ['valueEn', 'valueVi'] },
+                    ],
+                    raw: false,
+                    nest: true
                 })
 
                 if (!dataSchedule) dataSchedule = []
